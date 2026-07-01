@@ -4,32 +4,55 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 import ItemSearch, { type DofusItem } from "@/components/ItemSearch";
+import { resolveStatLabels } from "@/lib/dofus";
 import {
   AVIS_LABELS,
   AVIS_OPTIONS,
-  FOCUS_OPTIONS,
+  FOCUS_AUCUN,
   type Avis,
-  type Focus,
 } from "@/lib/types";
 
 export default function NouveauPage() {
   const router = useRouter();
 
   const [itemNom, setItemNom] = useState("");
-  const [itemNiveau, setItemNiveau] = useState<string>("");
+  const [itemImage, setItemImage] = useState<string | undefined>(undefined);
   const [coefficient, setCoefficient] = useState<string>("");
-  const [focus, setFocus] = useState<Focus>("AUCUN");
-  const [avis, setAvis] = useState<Avis>("BIEN");
-  const [lamasGeneres, setLamasGeneres] = useState<string>("");
+  const [focusOptions, setFocusOptions] = useState<string[]>([]);
+  const [focusLoading, setFocusLoading] = useState(false);
+  const [focus, setFocus] = useState<string>(FOCUS_AUCUN);
+  const [avis, setAvis] = useState<Avis>("GOD");
+  const [kamasGeneres, setKamasGeneres] = useState<string>("");
   const [auteur, setAuteur] = useState("");
-  const [commentaire, setCommentaire] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function handleItemSelect(item: DofusItem) {
+  async function handleItemSelect(item: DofusItem) {
     setItemNom(item.nom);
-    setItemNiveau(item.niveau !== undefined ? String(item.niveau) : "");
+    setItemImage(item.image);
+    setFocus(FOCUS_AUCUN);
+    setFocusOptions([]);
+
+    if (item.effectIds.length > 0) {
+      setFocusLoading(true);
+      try {
+        const labels = await resolveStatLabels(item.effectIds);
+        setFocusOptions(labels);
+      } catch {
+        setFocusOptions([]);
+      } finally {
+        setFocusLoading(false);
+      }
+    }
+  }
+
+  function handleItemText(text: string) {
+    setItemNom(text);
+    // Saisie libre : on repart d'un item sans image ni stats connues.
+    setItemImage(undefined);
+    setFocusOptions([]);
+    setFocus(FOCUS_AUCUN);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -52,13 +75,12 @@ export default function NouveauPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           itemNom: itemNom.trim(),
-          itemNiveau: itemNiveau === "" ? undefined : Number(itemNiveau),
+          itemImage,
           coefficient: coefficient === "" ? 0 : Number(coefficient),
           focus,
           avis,
-          lamasGeneres: lamasGeneres === "" ? 0 : Number(lamasGeneres),
+          kamasGeneres: kamasGeneres === "" ? 0 : Number(kamasGeneres),
           auteur: auteur.trim(),
-          commentaire: commentaire.trim() || undefined,
         }),
       });
 
@@ -94,30 +116,29 @@ export default function NouveauPage() {
           <label className="mb-1 block text-sm font-medium text-gray-300">
             Item
           </label>
-          <ItemSearch
-            value={itemNom}
-            onSelect={handleItemSelect}
-            onChangeText={setItemNom}
-          />
+          <div className="flex items-center gap-3">
+            {itemImage && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={itemImage}
+                alt=""
+                className="h-10 w-10 flex-shrink-0 rounded border border-base-border"
+              />
+            )}
+            <div className="flex-1">
+              <ItemSearch
+                value={itemNom}
+                onSelect={handleItemSelect}
+                onChangeText={handleItemText}
+              />
+            </div>
+          </div>
           <p className="mt-1 text-xs text-gray-500">
             Recherche via DofusDB, ou saisis un nom libre.
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-300">
-              Niveau de l&apos;item
-            </label>
-            <input
-              type="number"
-              min={0}
-              value={itemNiveau}
-              onChange={(e) => setItemNiveau(e.target.value)}
-              className={inputClass}
-              placeholder="Ex: 200"
-            />
-          </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-300">
               Coefficient (%)
@@ -131,25 +152,34 @@ export default function NouveauPage() {
               placeholder="Ex: 120"
             />
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-300">
-              Focus
+              Focus{" "}
+              {focusLoading && (
+                <span className="text-xs text-gray-500">(chargement…)</span>
+              )}
             </label>
             <select
               value={focus}
-              onChange={(e) => setFocus(e.target.value as Focus)}
+              onChange={(e) => setFocus(e.target.value)}
               className={inputClass}
             >
-              {FOCUS_OPTIONS.map((f) => (
+              <option value={FOCUS_AUCUN}>Aucun</option>
+              {focusOptions.map((f) => (
                 <option key={f} value={f}>
                   {f}
                 </option>
               ))}
             </select>
+            {focusOptions.length === 0 && !focusLoading && (
+              <p className="mt-1 text-xs text-gray-500">
+                Sélectionne un item pour voir ses stats.
+              </p>
+            )}
           </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-300">
               Avis
@@ -166,45 +196,31 @@ export default function NouveauPage() {
               ))}
             </select>
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-300">
-              Lamas générés
+              Kamas générés
             </label>
             <input
               type="number"
               step="any"
-              value={lamasGeneres}
-              onChange={(e) => setLamasGeneres(e.target.value)}
+              value={kamasGeneres}
+              onChange={(e) => setKamasGeneres(e.target.value)}
               className={inputClass}
               placeholder="Ex: 5000"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-300">
-              Ton pseudo
-            </label>
-            <input
-              type="text"
-              value={auteur}
-              onChange={(e) => setAuteur(e.target.value)}
-              className={inputClass}
-              placeholder="Ex: Jul"
             />
           </div>
         </div>
 
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-300">
-            Commentaire (optionnel)
+            Ton pseudo
           </label>
-          <textarea
-            value={commentaire}
-            onChange={(e) => setCommentaire(e.target.value)}
-            className={`${inputClass} min-h-[80px] resize-y`}
-            placeholder="Un petit mot sur ce brisage…"
+          <input
+            type="text"
+            value={auteur}
+            onChange={(e) => setAuteur(e.target.value)}
+            className={inputClass}
+            placeholder="Ex: Jul"
           />
         </div>
 

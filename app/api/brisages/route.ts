@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { addBrisage, getBrisages } from "@/lib/redis";
-import type { Avis, Brisage, Focus } from "@/lib/types";
-import { AVIS_OPTIONS, FOCUS_OPTIONS } from "@/lib/types";
+import type { Avis, Brisage } from "@/lib/types";
+import { AVIS_OPTIONS, FOCUS_AUCUN } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -34,46 +34,40 @@ export async function POST(request: Request) {
 
   const itemNom = typeof data.itemNom === "string" ? data.itemNom.trim() : "";
   const auteur = typeof data.auteur === "string" ? data.auteur.trim() : "";
-  const focus = data.focus as Focus;
   const avis = data.avis as Avis;
+  const focus =
+    typeof data.focus === "string" && data.focus.trim()
+      ? data.focus.trim()
+      : FOCUS_AUCUN;
+
+  const itemImage =
+    typeof data.itemImage === "string" && data.itemImage.trim()
+      ? data.itemImage.trim()
+      : undefined;
 
   const errors: string[] = [];
   if (!itemNom) errors.push("itemNom est requis.");
   if (!auteur) errors.push("auteur est requis.");
-  if (!FOCUS_OPTIONS.includes(focus)) errors.push("focus invalide.");
   if (!AVIS_OPTIONS.includes(avis)) errors.push("avis invalide.");
 
   const coefficient = Number(data.coefficient);
-  const lamasGeneres = Number(data.lamasGeneres);
+  const kamasGeneres = Number(data.kamasGeneres);
   if (Number.isNaN(coefficient)) errors.push("coefficient invalide.");
-  if (Number.isNaN(lamasGeneres)) errors.push("lamasGeneres invalide.");
+  if (Number.isNaN(kamasGeneres)) errors.push("kamasGeneres invalide.");
 
   if (errors.length > 0) {
     return NextResponse.json({ error: errors.join(" ") }, { status: 400 });
   }
 
-  const itemNiveau =
-    data.itemNiveau === undefined ||
-    data.itemNiveau === null ||
-    data.itemNiveau === ""
-      ? undefined
-      : Number(data.itemNiveau);
-
-  const commentaire =
-    typeof data.commentaire === "string" && data.commentaire.trim()
-      ? data.commentaire.trim()
-      : undefined;
-
   const brisage: Brisage = {
     id: uuidv4(),
     itemNom,
-    itemNiveau: Number.isNaN(itemNiveau as number) ? undefined : itemNiveau,
+    itemImage,
     coefficient,
     focus,
     avis,
-    lamasGeneres,
+    kamasGeneres,
     auteur,
-    commentaire,
     createdAt: new Date().toISOString(),
   };
 

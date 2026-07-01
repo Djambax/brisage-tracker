@@ -1,21 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { searchItems, type DofusItem } from "@/lib/dofus";
 
-export interface DofusItem {
-  nom: string;
-  niveau?: number;
-}
+export type { DofusItem };
 
 interface ItemSearchProps {
   value: string;
   onSelect: (item: DofusItem) => void;
   onChangeText: (text: string) => void;
-}
-
-interface DofusDbItem {
-  name?: { fr?: string };
-  level?: number;
 }
 
 export default function ItemSearch({
@@ -46,18 +39,7 @@ export default function ItemSearch({
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        const url = `https://api.dofusdb.fr/items?slug.fr[$search]=${encodeURIComponent(
-          term
-        )}&$limit=10`;
-        const res = await fetch(url, { signal: controller.signal });
-        if (!res.ok) throw new Error("Réponse API invalide");
-        const json = (await res.json()) as { data?: DofusDbItem[] };
-        const items: DofusItem[] = (json.data ?? [])
-          .map((it) => ({
-            nom: it.name?.fr ?? "",
-            niveau: typeof it.level === "number" ? it.level : undefined,
-          }))
-          .filter((it) => it.nom);
+        const items = await searchItems(term, controller.signal);
         setResults(items);
         setOpen(true);
       } catch (e) {
@@ -118,14 +100,19 @@ export default function ItemSearch({
               <button
                 type="button"
                 onClick={() => handleSelect(item)}
-                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-emerald-600/20"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-emerald-600/20"
               >
-                <span>{item.nom}</span>
-                {item.niveau !== undefined && (
-                  <span className="text-xs text-gray-500">
-                    Niv. {item.niveau}
-                  </span>
+                {item.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.image}
+                    alt=""
+                    className="h-7 w-7 flex-shrink-0 rounded"
+                  />
+                ) : (
+                  <span className="h-7 w-7 flex-shrink-0 rounded bg-base-border" />
                 )}
+                <span>{item.nom}</span>
               </button>
             </li>
           ))}

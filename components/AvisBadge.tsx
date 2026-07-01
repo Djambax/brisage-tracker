@@ -2,9 +2,10 @@ import type { Avis } from "@/lib/types";
 import { AVIS_LABELS } from "@/lib/types";
 
 const STYLES: Record<Avis, string> = {
-  BIEN: "bg-emerald-500/15 text-emerald-400 ring-emerald-500/30",
+  GOD: "bg-emerald-500/15 text-emerald-400 ring-emerald-500/30",
   MOYEN: "bg-amber-500/15 text-amber-400 ring-amber-500/30",
-  PUE_LA_MERDE: "bg-red-500/15 text-red-400 ring-red-500/30",
+  PUE_LA_MERDE: "bg-orange-500/15 text-orange-400 ring-orange-500/30",
+  CATASTROPHIQUE: "bg-red-500/20 text-red-400 ring-red-500/40",
 };
 
 export default function AvisBadge({ avis }: { avis: Avis }) {

@@ -1,12 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Avis, Brisage, Focus } from "@/lib/types";
-import { AVIS_LABELS, AVIS_OPTIONS, FOCUS_OPTIONS } from "@/lib/types";
+import type { Avis, Brisage } from "@/lib/types";
+import { AVIS_LABELS, AVIS_OPTIONS } from "@/lib/types";
 import AvisBadge from "./AvisBadge";
 
 type AvisFilter = Avis | "TOUS";
-type FocusFilter = Focus | "TOUS";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -20,9 +19,32 @@ function formatDate(iso: string): string {
   });
 }
 
+function ItemCell({ b }: { b: Brisage }) {
+  return (
+    <div className="flex items-center gap-2">
+      {b.itemImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={b.itemImage}
+          alt=""
+          className="h-8 w-8 flex-shrink-0 rounded"
+        />
+      ) : (
+        <span className="h-8 w-8 flex-shrink-0 rounded bg-base-border" />
+      )}
+      <span className="font-medium">{b.itemNom}</span>
+    </div>
+  );
+}
+
 export default function BrisagesTable({ brisages }: { brisages: Brisage[] }) {
   const [avisFilter, setAvisFilter] = useState<AvisFilter>("TOUS");
-  const [focusFilter, setFocusFilter] = useState<FocusFilter>("TOUS");
+  const [focusFilter, setFocusFilter] = useState<string>("TOUS");
+
+  const focusValues = useMemo(() => {
+    return Array.from(new Set(brisages.map((b) => b.focus).filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b, "fr"));
+  }, [brisages]);
 
   const filtered = useMemo(() => {
     return brisages.filter((b) => {
@@ -55,11 +77,11 @@ export default function BrisagesTable({ brisages }: { brisages: Brisage[] }) {
           <label className="text-xs font-medium text-gray-400">Focus</label>
           <select
             value={focusFilter}
-            onChange={(e) => setFocusFilter(e.target.value as FocusFilter)}
+            onChange={(e) => setFocusFilter(e.target.value)}
             className="rounded-lg border border-base-border bg-base-card px-3 py-2 text-sm outline-none focus:border-emerald-500"
           >
             <option value="TOUS">Tous</option>
-            {FOCUS_OPTIONS.map((f) => (
+            {focusValues.map((f) => (
               <option key={f} value={f}>
                 {f}
               </option>
@@ -80,15 +102,14 @@ export default function BrisagesTable({ brisages }: { brisages: Brisage[] }) {
         <>
           {/* Vue tableau (desktop) */}
           <div className="hidden overflow-x-auto rounded-xl border border-base-border md:block">
-            <table className="w-full min-w-[820px] text-sm">
+            <table className="w-full min-w-[720px] text-sm">
               <thead className="bg-base-card text-left text-xs uppercase tracking-wide text-gray-400">
                 <tr>
                   <th className="px-4 py-3">Item</th>
-                  <th className="px-4 py-3">Niveau</th>
                   <th className="px-4 py-3">Coefficient</th>
                   <th className="px-4 py-3">Focus</th>
                   <th className="px-4 py-3">Avis</th>
-                  <th className="px-4 py-3">Lamas générés</th>
+                  <th className="px-4 py-3">Kamas générés</th>
                   <th className="px-4 py-3">Auteur</th>
                   <th className="px-4 py-3">Date</th>
                 </tr>
@@ -97,15 +118,7 @@ export default function BrisagesTable({ brisages }: { brisages: Brisage[] }) {
                 {filtered.map((b) => (
                   <tr key={b.id} className="hover:bg-base-card/50">
                     <td className="px-4 py-3">
-                      <div className="font-medium">{b.itemNom}</div>
-                      {b.commentaire && (
-                        <div className="mt-0.5 text-xs text-gray-500">
-                          {b.commentaire}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-gray-300">
-                      {b.itemNiveau ?? "-"}
+                      <ItemCell b={b} />
                     </td>
                     <td className="px-4 py-3 text-gray-300">
                       {b.coefficient}%
@@ -115,7 +128,7 @@ export default function BrisagesTable({ brisages }: { brisages: Brisage[] }) {
                       <AvisBadge avis={b.avis} />
                     </td>
                     <td className="px-4 py-3 text-gray-300">
-                      {b.lamasGeneres.toLocaleString("fr-FR")}
+                      {b.kamasGeneres.toLocaleString("fr-FR")}
                     </td>
                     <td className="px-4 py-3 text-gray-300">{b.auteur}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-gray-400">
@@ -135,21 +148,15 @@ export default function BrisagesTable({ brisages }: { brisages: Brisage[] }) {
                 className="rounded-xl border border-base-border bg-base-card p-4"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="font-medium">{b.itemNom}</div>
-                    <div className="text-xs text-gray-500">
-                      Niveau {b.itemNiveau ?? "-"} · {b.coefficient}% ·{" "}
-                      {b.focus}
-                    </div>
-                  </div>
+                  <ItemCell b={b} />
                   <AvisBadge avis={b.avis} />
                 </div>
-                {b.commentaire && (
-                  <p className="mt-2 text-sm text-gray-400">{b.commentaire}</p>
-                )}
+                <div className="mt-2 text-xs text-gray-500">
+                  {b.coefficient}% · Focus {b.focus}
+                </div>
                 <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
                   <span>
-                    {b.lamasGeneres.toLocaleString("fr-FR")} lamas · {b.auteur}
+                    {b.kamasGeneres.toLocaleString("fr-FR")} kamas · {b.auteur}
                   </span>
                   <span>{formatDate(b.createdAt)}</span>
                 </div>

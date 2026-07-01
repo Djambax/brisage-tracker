@@ -1,29 +1,32 @@
-export type Focus = "PA" | "PM" | "PO" | "AUCUN";
-
-export type Avis = "BIEN" | "PUE_LA_MERDE" | "MOYEN";
+export type Avis = "GOD" | "MOYEN" | "PUE_LA_MERDE" | "CATASTROPHIQUE";
 
 export interface Brisage {
   id: string;
   itemNom: string;
-  itemNiveau?: number;
+  itemImage?: string;
   coefficient: number; // en %
-  focus: Focus;
+  focus: string; // libellé de la stat focus, ou "AUCUN"
   avis: Avis;
-  lamasGeneres: number;
+  kamasGeneres: number;
   auteur: string;
-  commentaire?: string;
   createdAt: string; // ISO date
 }
 
 // Champs fournis par le client lors de la création (id + createdAt générés côté serveur)
 export type NouveauBrisage = Omit<Brisage, "id" | "createdAt">;
 
-export const FOCUS_OPTIONS: Focus[] = ["PA", "PM", "PO", "AUCUN"];
+export const FOCUS_AUCUN = "AUCUN";
 
-export const AVIS_OPTIONS: Avis[] = ["BIEN", "MOYEN", "PUE_LA_MERDE"];
+export const AVIS_OPTIONS: Avis[] = [
+  "GOD",
+  "MOYEN",
+  "PUE_LA_MERDE",
+  "CATASTROPHIQUE",
+];
 
 export const AVIS_LABELS: Record<Avis, string> = {
-  BIEN: "Bien",
-  MOYEN: "Moyen",
+  GOD: "God tier 🐐",
+  MOYEN: "Bof mon reuf",
   PUE_LA_MERDE: "Pue la merde",
+  CATASTROPHIQUE: "Catastrophique, ta race",
 };

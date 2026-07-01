@@ -33,9 +33,16 @@ export async function getBrisages(): Promise<Brisage[]> {
   const redis = getRedis();
   const raw = await redis.lrange<Brisage | string>(BRISAGES_KEY, 0, -1);
 
-  const brisages: Brisage[] = raw.map((item) =>
-    typeof item === "string" ? (JSON.parse(item) as Brisage) : item
-  );
+  const brisages: Brisage[] = raw.map((item) => {
+    const parsed = (
+      typeof item === "string" ? JSON.parse(item) : item
+    ) as Brisage & { lamasGeneres?: number };
+    // Compat rétro : anciennes entrées stockées avec "lamasGeneres".
+    if (parsed.kamasGeneres === undefined && parsed.lamasGeneres !== undefined) {
+      parsed.kamasGeneres = parsed.lamasGeneres;
+    }
+    return parsed;
+  });
 
   return brisages.sort(
     (a, b) =>
