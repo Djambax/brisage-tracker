@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { Avis, Brisage } from "@/lib/types";
 import { AVIS_LABELS, AVIS_OPTIONS } from "@/lib/types";
 import AvisBadge from "./AvisBadge";
@@ -38,8 +40,30 @@ function ItemCell({ b }: { b: Brisage }) {
 }
 
 export default function BrisagesTable({ brisages }: { brisages: Brisage[] }) {
+  const router = useRouter();
   const [avisFilter, setAvisFilter] = useState<AvisFilter>("TOUS");
   const [focusFilter, setFocusFilter] = useState<string>("TOUS");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function handleDelete(b: Brisage) {
+    if (
+      !window.confirm(
+        `Supprimer le brisage de "${b.itemNom}" ? Cette action est définitive.`
+      )
+    ) {
+      return;
+    }
+    setDeletingId(b.id);
+    try {
+      const res = await fetch(`/api/brisages/${b.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Échec de la suppression.");
+      router.refresh();
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : "Erreur inconnue.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   const focusValues = useMemo(() => {
     return Array.from(new Set(brisages.map((b) => b.focus).filter(Boolean)))
@@ -112,6 +136,7 @@ export default function BrisagesTable({ brisages }: { brisages: Brisage[] }) {
                   <th className="px-4 py-3">Kamas générés</th>
                   <th className="px-4 py-3">Auteur</th>
                   <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-base-border">
@@ -133,6 +158,24 @@ export default function BrisagesTable({ brisages }: { brisages: Brisage[] }) {
                     <td className="px-4 py-3 text-gray-300">{b.auteur}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-gray-400">
                       {formatDate(b.createdAt)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                        <Link
+                          href={`/nouveau?id=${b.id}`}
+                          className="rounded-md border border-base-border px-2 py-1 text-xs text-gray-300 transition hover:bg-base-bg"
+                        >
+                          Modifier
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(b)}
+                          disabled={deletingId === b.id}
+                          className="rounded-md border border-red-500/30 px-2 py-1 text-xs text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
+                        >
+                          {deletingId === b.id ? "…" : "Supprimer"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -159,6 +202,22 @@ export default function BrisagesTable({ brisages }: { brisages: Brisage[] }) {
                     {b.kamasGeneres.toLocaleString("fr-FR")} kamas · {b.auteur}
                   </span>
                   <span>{formatDate(b.createdAt)}</span>
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <Link
+                    href={`/nouveau?id=${b.id}`}
+                    className="flex-1 rounded-md border border-base-border px-2 py-1.5 text-center text-xs text-gray-300 transition hover:bg-base-bg"
+                  >
+                    Modifier
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(b)}
+                    disabled={deletingId === b.id}
+                    className="flex-1 rounded-md border border-red-500/30 px-2 py-1.5 text-xs text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
+                  >
+                    {deletingId === b.id ? "Suppression…" : "Supprimer"}
+                  </button>
                 </div>
               </div>
             ))}
